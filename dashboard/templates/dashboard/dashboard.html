@@ -1,0 +1,12 @@
+{% extends 'store/base.html' %}
+{% block content %}
+<div class="container">
+<h1>Admin dashboard</h1>
+</div>
+<div class="container">
+<h2>Orders:</h2>
+{% for order in orders %}
+    <h4>Order №: <a href="{%url 'order-detail' order.pk %}">{{order.transaction_id}}</a>,<br>Ordered at {{order.date_ordered}},<br>Status: {{order.status}}</h4><hr>
+{% endfor %}
+</div>
+{% endblock %}

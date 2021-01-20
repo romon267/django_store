@@ -1,0 +1,11 @@
+{%extends 'store/base.html'%}
+{% block content%}
+<div class="container">
+    <h2>{{user.username}}' profile</h2>
+    <h3>Your orders:</h3>
+    {%for order in orders%}
+        <h4>Order {{order.transaction_id}}, {{order.date_ordered}}, {{order.status}}</h4>
+
+{% endfor%}
+</div>
+{% endblock %}
