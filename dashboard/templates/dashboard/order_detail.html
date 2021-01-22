@@ -16,5 +16,10 @@
     {% else %}
         <text class="fw-bold">Order is digital</text>
     {% endif %}
+    <p>Status: {{order.status}}</p>
+    {% if order.status == 'Processing by managers.' %}
+        <p><a class="btn btn-success" href="{% url 'order-confirm' order.pk%}">Confirm order sending to customer.</a></p>
+    {% endif %}
 </div>
+
 {% endblock %}
