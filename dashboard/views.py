@@ -1,12 +1,16 @@
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import redirect, render
 from store.models import Order, ShippingAddress
+from django.core.paginator import Paginator
 
 @user_passes_test(lambda u: u.is_staff)
 def dashboard(request):
     orders = Order.objects.filter(complete=True)
+    paginator = Paginator(orders, 8)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
     context = {
-        'orders': orders
+        'orders': page_obj
     }
     return render(request, 'dashboard/dashboard.html', context)
 

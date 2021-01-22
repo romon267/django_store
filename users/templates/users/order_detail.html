@@ -1,0 +1,22 @@
+{% extends 'store/base.html' %}
+{% block content %}
+<div class="container">
+    <h1>Order №: {{order.transaction_id}}</h1>
+    <h2>Ordered positions:</h2>
+    {% for item in items %}
+        {{item.product.name}} x {{item.quantity}}, price: ${{item.product.price}} each.<br>
+    {% endfor %}
+    <text class="fw-bold">Total: {{order.get_cart_items}} items for ${{order.get_cart_total}}</text>
+    <h2>Customer info:</h2>
+    <p>{{order.customer.name}}<br>{{order.customer.email}}</p>
+    {% if shipping_address %}
+        <h2>Shipping address:</h2>
+        <p>{{shipping_address.address}}<br>{{shipping_address.city}}<br>
+        {{shipping_address.zipcode}}<br>{{shipping_address.state}}<br></p>
+    {% else %}
+        <text class="fw-bold">Order is digital</text>
+    {% endif %}
+    <p>Status: {{order.status}}</p>
+</div>
+
+{% endblock %}

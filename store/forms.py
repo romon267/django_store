@@ -10,4 +10,4 @@ class ShippingForm(ModelForm):
 class GuestForm(ModelForm):
     class Meta:
         model = Customer
-        fields = 'name', 'email'
+        fields = ['name', 'email']

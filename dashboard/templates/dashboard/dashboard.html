@@ -8,5 +8,32 @@
 {% for order in orders %}
     <h4>Order №: <a href="{%url 'order-detail' order.pk %}">{{order.transaction_id}}</a>,<br>Ordered at {{order.date_ordered}},<br>Status: {{order.status}}</h4><hr>
 {% endfor %}
+<nav aria-label="Page navigation">
+    <ul class="pagination justify-content-center">
+        
+        {% if orders.has_previous%}
+            <li class="page-item">
+            <a class="page-link" href="?page={{orders.previous_page_number}}">Previous</a>
+            </li>
+        {% else %}
+            <li class="page-item disabled">
+            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Previous</a>
+            </li>
+        {% endif %}
+        <li class="page-item">
+        <a class="page-link" href="#">Current</a>
+        </li>
+        {% if orders.has_next %}
+        <li class="page-item">
+        <a class="page-link" href="?page={{orders.next_page_number}}">Next</a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Next</a>
+            </li>
+        {% endif %}
+        
+    </ul>
+    </nav>
 </div>
 {% endblock %}
