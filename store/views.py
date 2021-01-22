@@ -71,6 +71,24 @@ def checkout(request):
                 )
                 messages.success(request, 'Your order has been placed!')
                 return redirect('home')
+            elif order.shipping == False:
+                order.complete = True
+                order.transaction_id = secrets.token_hex(8)
+                order.status = 'Processing by managers.'
+                order.date_ordered = datetime.utcnow()
+                order.save()
+                send_mail(
+                    'Thank you for your order at Django_Store!',
+                    f'Your order №{order.transaction_id} has been placed and currently being reviewed by managers.\nYou can check your order status in your profile at django_store!',
+                    'noreply@django_store.com',
+                    [customer.email]
+                )
+                mail_admins(
+                    'New order at django_store',
+                    f'New order №{order.transaction_id}\n Customer: {customer.name} at {customer.email}'
+                )
+                messages.success(request, 'Your order has been placed!')
+                return redirect('home')
         else:
             form = ShippingForm()
     else:
@@ -97,13 +115,34 @@ def checkout(request):
                     city=form.cleaned_data.get('city'), zipcode=form.cleaned_data.get('zipcode'), state=form.cleaned_data.get('state'))
                 send_mail(
                     'Thank you for your order at Django_Store!',
-                    f'Your order №{order.transaction_id} has been placed and currently being reviewed by managers.\nYou can check your order status in your profile at django_store!',
+                    f'Your order №{db_order.transaction_id} has been placed and currently being reviewed by managers.\nYou can check your order status in your profile at django_store!',
                     'noreply@django_store.com',
                     [customer.email]
                 )
                 mail_admins(
                     'New order at django_store',
-                    f'New order №{order.transaction_id}\n Customer: {customer.name} at {customer.email}'
+                    f'New order №{db_order.transaction_id}\n Customer: {customer.name} at {customer.email}'
+                )
+                messages.success(request, 'Your order has been placed!')
+                return redirect('home')
+            elif guest_form.is_valid() and order['shipping'] == False:
+                guest_form.save()
+                customer = Customer.objects.create(name = guest_form.cleaned_data.get('name'), email = guest_form.cleaned_data.get('email'))
+                db_order = Order.objects.create(customer = customer, complete = True, transaction_id = secrets.token_hex(8), status='Processing by managers.')
+                for item in items:
+                    product_id = item['product']['id']
+                    product = Product.objects.get(id = product_id)
+                    quantity = item['quantity']
+                    orderitem, created = OrderItem.objects.get_or_create(order=db_order, product=product, quantity=quantity)
+                send_mail(
+                    'Thank you for your order at Django_Store!',
+                    f'Your order №{db_order.transaction_id} has been placed and currently being reviewed by managers.\nYou can check your order status in your profile at django_store!',
+                    'noreply@django_store.com',
+                    [customer.email]
+                )
+                mail_admins(
+                    'New order at django_store',
+                    f'New order №{db_order.transaction_id}\n Customer: {customer.name} at {customer.email}'
                 )
                 messages.success(request, 'Your order has been placed!')
                 return redirect('home')
@@ -111,7 +150,7 @@ def checkout(request):
             form = ShippingForm()
             guest_form = GuestForm()
             
-    context = {'items': items, 'order': order, 'cart_items': cart_items, 'form': form, 'guest_form': guest_form}
+    context = {'items': items, 'order': order, 'cart_items': cart_items, 'form': form, 'guest_form':guest_form}
     return render(request, 'store/checkout.html', context)
 
 
