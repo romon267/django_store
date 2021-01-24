@@ -59,24 +59,7 @@ def process_cart_items(request):
     return{'cart_items': cart_items, 'items': items, 'order': order}
 
 
-def send_order_mails_auth(request):
-    customer = request.user.customer
-    order, created = Order.objects.get_or_create(
-        customer=customer, complete=False)
-
-    send_mail(
-        'Thank you for your order at Django_Store!',
-        f'Your order №{order.transaction_id} has been placed and currently being reviewed by managers.\nYou can check your order status in your profile at django_store!',
-        'noreply@django_store.com',
-        [customer.email]
-    )
-    mail_admins(
-        'New order at django_store',
-        f'New order №{order.transaction_id}\n Customer: {customer.name} at {customer.email}'
-    )
-
-
-def send_order_mails_guest(customer, order):
+def send_order_mails(customer, order):
 
     send_mail(
         'Thank you for your order at Django_Store!',
@@ -99,7 +82,7 @@ def process_order_auth(request, order, form, customer):
     if order.shipping == True:
         ShippingAddress.objects.create(customer=customer, order=order, address=form.cleaned_data.get('address'),
                                        city=form.cleaned_data.get('city'), zipcode=form.cleaned_data.get('zipcode'), state=form.cleaned_data.get('state'))
-    send_order_mails_auth(request)
+    send_order_mails(customer, order)
     messages.success(request, 'Your order has been placed!')
 
 
@@ -118,5 +101,5 @@ def process_order_guest(request, form, guest_form, items):
     if db_order.shipping == True:
         ShippingAddress.objects.create(customer=customer, order=db_order, address=form.cleaned_data.get('address'),
                                        city=form.cleaned_data.get('city'), zipcode=form.cleaned_data.get('zipcode'), state=form.cleaned_data.get('state'))
-    send_order_mails_guest(customer, order=db_order)
+    send_order_mails(customer, order=db_order)
     messages.success(request, 'Your order has been placed!')
