@@ -5,7 +5,7 @@ from django.http import JsonResponse
 import json
 from django.contrib import messages
 import secrets
-from .utils import cookieCart, process_cart_items, send_order_mails, process_order_auth, process_order_guest
+from .utils import cookieCart, process_cart_items, process_order_auth, process_order_guest
 from datetime import datetime
 from django.core.mail import send_mail, mail_admins
 from django.contrib.auth.decorators import user_passes_test
