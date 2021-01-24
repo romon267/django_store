@@ -2,13 +2,13 @@ from django.core import paginator
 from store.models import Order, ShippingAddress
 from django.shortcuts import redirect, render
 from django.contrib import messages
-from .forms import UserRegisterForm
+from .forms import UserRegisterForm, UserLoginForm
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from store.forms import GuestForm
+from django.contrib.auth import views as auth_views
 
 def register(request):
-    
     if request.method == "POST":
         form = UserRegisterForm(request.POST)
         if form.is_valid():
@@ -22,6 +22,11 @@ def register(request):
         'form': form,
     }
     return render(request, 'users/register.html', context)
+
+
+class LoginView(auth_views.LoginView):
+    form_class = UserLoginForm
+    template_name = 'users/login.html'
 
 @login_required
 def profile(request):

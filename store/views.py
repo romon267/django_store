@@ -5,38 +5,39 @@ from django.http import JsonResponse
 import json
 from django.contrib import messages
 import secrets
-from .utils import cookieCart
+from .utils import cookieCart, process_cart_items, send_order_mails, process_order_auth, process_order_guest
 from datetime import datetime
 from django.core.mail import send_mail, mail_admins
+from django.contrib.auth.decorators import user_passes_test
 
 def store(request):
-    if request.user.is_authenticated:
-        customer = request.user.customer
-        order, created = Order.objects.get_or_create(customer = customer, complete=False)
-        items = order.orderitem_set.all()
-        cart_items = order.get_cart_items
-    else:
-        cookie_data = cookieCart(request)
-        cart_items = cookie_data['cart_items']
-
+    # displaying cart total in the navbar
+    cart_data = process_cart_items(request)
+    cart_items = cart_data['cart_items']
     products = Product.objects.all()
     context = {'products': products, 'cart_items': cart_items}
 
     return render(request, 'store/store.html', context)
 
 
+def product_detail(request, pk):
+    # displaying cart total in the navbar
+    cart_data = process_cart_items(request)
+    cart_items = cart_data['cart_items']
+    product = Product.objects.get(pk=pk)
+    context = {'product': product, 'cart_items': cart_items}
+
+    return render(request, 'store/product_detail.html', context)
+
+
 def cart(request):
-    if request.user.is_authenticated:
-        customer = request.user.customer
-        order, created = Order.objects.get_or_create(customer = customer, complete=False)
-        items = order.orderitem_set.all()
-        cart_items = order.get_cart_items
-    else:
-        cookie_data = cookieCart(request)
-        items = cookie_data['items']
-        order = cookie_data['order']
-        cart_items = cookie_data['cart_items']
+    # getting cart items total and item list from the function
+    cart_data = process_cart_items(request)
+    items = cart_data['items']
+    cart_items = cart_data['cart_items']
+    order = cart_data['order']
     context = {'items': items, 'order': order, 'cart_items': cart_items}
+
     return render(request, 'store/cart.html', context)
 
 
@@ -44,50 +45,18 @@ def checkout(request):
     guest_form = GuestForm()
     if request.user.is_authenticated:
         customer = request.user.customer
-        order, created = Order.objects.get_or_create(customer = customer, complete=False)
+        order, created = Order.objects.get_or_create(
+            customer=customer, complete=False)
         items = order.orderitem_set.all()
         cart_items = order.get_cart_items
         if request.method == "POST":
             form = ShippingForm(request.POST)
             if form.is_valid():
                 form.save()
-                order.complete = True
-                order.transaction_id = secrets.token_hex(8)
-                order.status = 'Processing by managers.'
-                order.date_ordered = datetime.utcnow()
-                order.save()
-                if order.shipping == True:
-                    ShippingAddress.objects.create(customer=customer, order=order, address=form.cleaned_data.get('address'),
-                    city=form.cleaned_data.get('city'), zipcode=form.cleaned_data.get('zipcode'), state=form.cleaned_data.get('state'))
-                send_mail(
-                    'Thank you for your order at Django_Store!',
-                    f'Your order №{order.transaction_id} has been placed and currently being reviewed by managers.\nYou can check your order status in your profile at django_store!',
-                    'noreply@django_store.com',
-                    [customer.email]
-                )
-                mail_admins(
-                    'New order at django_store',
-                    f'New order №{order.transaction_id}\n Customer: {customer.name} at {customer.email}'
-                )
-                messages.success(request, 'Your order has been placed!')
+                process_order_auth(request, order, form, customer)
                 return redirect('home')
             elif order.shipping == False:
-                order.complete = True
-                order.transaction_id = secrets.token_hex(8)
-                order.status = 'Processing by managers.'
-                order.date_ordered = datetime.utcnow()
-                order.save()
-                send_mail(
-                    'Thank you for your order at Django_Store!',
-                    f'Your order №{order.transaction_id} has been placed and currently being reviewed by managers.\nYou can check your order status in your profile at django_store!',
-                    'noreply@django_store.com',
-                    [customer.email]
-                )
-                mail_admins(
-                    'New order at django_store',
-                    f'New order №{order.transaction_id}\n Customer: {customer.name} at {customer.email}'
-                )
-                messages.success(request, 'Your order has been placed!')
+                process_order_auth(request, order, form, customer)
                 return redirect('home')
         else:
             form = ShippingForm()
@@ -101,56 +70,17 @@ def checkout(request):
             guest_form = GuestForm(request.POST)
             if form.is_valid() and guest_form.is_valid():
                 form.save()
-                guest_form.save()
-                customer = Customer.objects.create(name = guest_form.cleaned_data.get('name'), email = guest_form.cleaned_data.get('email'))
-
-                db_order = Order.objects.create(customer = customer, complete = True, transaction_id = secrets.token_hex(8), status='Processing by managers.')
-                for item in items:
-                    product_id = item['product']['id']
-                    product = Product.objects.get(id = product_id)
-                    quantity = item['quantity']
-                    orderitem, created = OrderItem.objects.get_or_create(order=db_order, product=product, quantity=quantity)
-                if db_order.shipping == True:
-                    ShippingAddress.objects.create(customer=customer, order=db_order, address=form.cleaned_data.get('address'),
-                    city=form.cleaned_data.get('city'), zipcode=form.cleaned_data.get('zipcode'), state=form.cleaned_data.get('state'))
-                send_mail(
-                    'Thank you for your order at Django_Store!',
-                    f'Your order №{db_order.transaction_id} has been placed and currently being reviewed by managers.\nYou can check your order status in your profile at django_store!',
-                    'noreply@django_store.com',
-                    [customer.email]
-                )
-                mail_admins(
-                    'New order at django_store',
-                    f'New order №{db_order.transaction_id}\n Customer: {customer.name} at {customer.email}'
-                )
-                messages.success(request, 'Your order has been placed!')
+                process_order_guest(request, form, guest_form, items)
                 return redirect('home')
             elif guest_form.is_valid() and order['shipping'] == False:
-                guest_form.save()
-                customer = Customer.objects.create(name = guest_form.cleaned_data.get('name'), email = guest_form.cleaned_data.get('email'))
-                db_order = Order.objects.create(customer = customer, complete = True, transaction_id = secrets.token_hex(8), status='Processing by managers.')
-                for item in items:
-                    product_id = item['product']['id']
-                    product = Product.objects.get(id = product_id)
-                    quantity = item['quantity']
-                    orderitem, created = OrderItem.objects.get_or_create(order=db_order, product=product, quantity=quantity)
-                send_mail(
-                    'Thank you for your order at Django_Store!',
-                    f'Your order №{db_order.transaction_id} has been placed and currently being reviewed by managers.\nYou can check your order status in your profile at django_store!',
-                    'noreply@django_store.com',
-                    [customer.email]
-                )
-                mail_admins(
-                    'New order at django_store',
-                    f'New order №{db_order.transaction_id}\n Customer: {customer.name} at {customer.email}'
-                )
-                messages.success(request, 'Your order has been placed!')
+                process_order_guest(request, form, guest_form, items)
                 return redirect('home')
         else:
             form = ShippingForm()
             guest_form = GuestForm()
-            
-    context = {'items': items, 'order': order, 'cart_items': cart_items, 'form': form, 'guest_form':guest_form}
+
+    context = {'items': items, 'order': order,
+               'cart_items': cart_items, 'form': form, 'guest_form': guest_form}
     return render(request, 'store/checkout.html', context)
 
 
@@ -163,15 +93,24 @@ def updateItem(request):
 
     customer = request.user.customer
     product = Product.objects.get(id=productId)
-    order, created = Order.objects.get_or_create(customer = customer, complete=False)
-    orderitem, created = OrderItem.objects.get_or_create(order = order, product = product)
+    order, created = Order.objects.get_or_create(
+        customer=customer, complete=False)
+    orderitem, created = OrderItem.objects.get_or_create(
+        order=order, product=product)
     if action == 'add':
         orderitem.quantity += 1
     elif action == 'remove':
-        orderitem.quantity -=1
-    
+        orderitem.quantity -= 1
+
     orderitem.save()
 
     if orderitem.quantity <= 0:
         orderitem.delete()
     return JsonResponse('Item was added', safe=False)
+
+@user_passes_test(lambda u: u.is_staff)
+def delete_product(request, pk):
+    product = Product.objects.get(pk=pk)
+    product.delete()
+    messages.success(request, 'Product was deleted!')
+    return redirect('store')

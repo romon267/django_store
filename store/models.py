@@ -13,7 +13,7 @@ class Customer(models.Model):
 
 class Product(models.Model):
     name = models.CharField(max_length=200)
-    description = models.CharField(max_length=400, null=True)
+    description = models.TextField(max_length=600, null=True)
     price = models.DecimalField(max_digits=8, decimal_places=2)
     digital = models.BooleanField(default=False, null=True, blank=False)
     image = models.ImageField(null = True, blank=True)
@@ -37,6 +37,8 @@ class Order(models.Model):
     status = models.CharField(max_length=40, default='', null=True, blank=True)
     transaction_id = models.CharField(max_length=200, null=True)
 
+    class Meta:
+        ordering = ['-date_ordered']
 
     @property
     def shipping(self):

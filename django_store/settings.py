@@ -24,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('SECRET_KEY_DS')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['django-store-romon.herokuapp.com']
 
@@ -143,6 +143,8 @@ LOGIN_REDIRECT_URL = 'home'
 LOGIN_URL = 'login'
 
 ADMINS = [('romon', 'romon267@gmail.com')]
+
+AUTHENTICATION_BACKENDS = ['users.backends.EmailBackend']
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
