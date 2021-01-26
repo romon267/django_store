@@ -16,6 +16,7 @@ class Product(models.Model):
     description = models.TextField(max_length=600, null=True)
     price = models.DecimalField(max_digits=8, decimal_places=2)
     digital = models.BooleanField(default=False, null=True, blank=False)
+    visible = models.BooleanField(default=True, null=True, blank=False)
     image = models.ImageField(null = True, blank=True)
 
     def __str__(self):
@@ -80,7 +81,7 @@ class OrderItem(models.Model):
         return total
 
     def __str__(self):
-        return f'{self.id}, {self.product.name} {self.product.id}, {self.order.id}'
+        return f'{self.id}'
 
 
 class ShippingAddress(models.Model):

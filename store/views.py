@@ -1,20 +1,17 @@
 from store.forms import ShippingForm, GuestForm
 from django.shortcuts import redirect, render
-from .models import Customer, Product, Order, OrderItem, ShippingAddress
+from .models import Product, Order, OrderItem
 from django.http import JsonResponse
 import json
 from django.contrib import messages
-import secrets
 from .utils import cookieCart, process_cart_items, process_order_auth, process_order_guest
-from datetime import datetime
-from django.core.mail import send_mail, mail_admins
 from django.contrib.auth.decorators import user_passes_test
 
 def store(request):
     # displaying cart total in the navbar
     cart_data = process_cart_items(request)
     cart_items = cart_data['cart_items']
-    products = Product.objects.all()
+    products = Product.objects.filter(visible=True)
     context = {'products': products, 'cart_items': cart_items}
 
     return render(request, 'store/store.html', context)
@@ -111,6 +108,7 @@ def updateItem(request):
 @user_passes_test(lambda u: u.is_staff)
 def delete_product(request, pk):
     product = Product.objects.get(pk=pk)
-    product.delete()
+    product.visible = False
+    product.save()
     messages.success(request, 'Product was deleted!')
     return redirect('store')
